@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtensor-mainnet-lite
+spec:
+  replicas: 1  
+  selector:
+    matchLabels:
+      app: subtensor-mainnet-lite # When deployments are created, it creates pods with this label. The service watches for pods with this label and automatically discovers them.
+  template:
+    metadata:
+      labels:
+        app: subtensor-mainnet-lite
+    spec:
+      containers:
+      - name: subtensor
+        image: opentensor/subtensor:latest  # Use the correct image
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "12Gi"
+            cpu: 3
+        ports:
+        - containerPort: 9944
+        - containerPort: 30333
+        - containerPort: 9933
+        env:
+        - name: CARGO_HOME
+          value: "/var/www/node-subtensor/.cargo"
+        volumeMounts:
+        - name: blockchain-volume
+          mountPath: /tmp/blockchain
+        command: ["/bin/bash", "-c"]
+        args:
+          - >
+            node-subtensor
+            --base-path /tmp/blockchain
+            --chain raw_spec.json
+            --rpc-external --rpc-cors all
+            --ws-external --no-mdns
+            --ws-max-connections 10000 --in-peers 500 --out-peers 500
+            --bootnodes /dns/bootnode.finney.chain.opentensor.ai/tcp/30333/ws/p2p/12D3KooWRwbMb85RWnT8DSXSYMWQtuDwh4LJzndoRrTDotTR5gDC
+            --sync warp
+      volumes:
+      - name: blockchain-volume
+        emptyDir: {}
